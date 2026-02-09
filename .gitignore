@@ -1,3 +1,6 @@
+# Claude Code
+.claude/
+
 /src/ScottPlot5/BenchmarkDotNet.Artifacts
 /dev/www/metrics
 *.Metrics.xml

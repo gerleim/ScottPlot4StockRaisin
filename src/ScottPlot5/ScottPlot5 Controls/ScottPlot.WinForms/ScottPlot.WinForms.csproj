@@ -20,7 +20,7 @@
         <Copyright>Copyright (c) Scott Harden / Harden Technologies, LLC</Copyright>
         <PackageTags>plot graph data chart signal line bar heatmap scatter</PackageTags>
         <description>User controls for displaying interactive plots in Windows Forms applications</description>
-        <PackageIcon>icon.png</PackageIcon>
+
         <PackageReadmeFile>readme.md</PackageReadmeFile>
         <PackageProjectUrl>https://ScottPlot.NET</PackageProjectUrl>
         <RepositoryUrl>https://github.com/ScottPlot/ScottPlot.git</RepositoryUrl>
@@ -42,7 +42,7 @@
 
     <!-- Include additional files for the NuGet package -->
     <ItemGroup>
-        <None Include="../../../../dev/icon/v5/scottplot-icon-rounded-border-128.png" Pack="true" PackagePath="icon.png" />
+
         <None Include="nuget-readme.md" Pack="true" PackagePath="readme.md" />
     </ItemGroup>
 
