@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
-
 namespace ScottPlot.TickGenerators.TimeUnits;
 
 public class Centisecond : ITimeUnit

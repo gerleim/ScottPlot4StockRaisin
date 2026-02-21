@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace ScottPlot;
 
 // NOTE: names are consistent with matplotlib linestyles

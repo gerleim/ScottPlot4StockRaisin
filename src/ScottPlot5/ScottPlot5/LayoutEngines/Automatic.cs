@@ -1,5 +1,3 @@
-using ScottPlot.AxisPanels;
-
 namespace ScottPlot.LayoutEngines;
 
 /// <summary>

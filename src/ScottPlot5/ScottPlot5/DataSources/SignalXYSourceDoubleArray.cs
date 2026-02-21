@@ -1,5 +1,3 @@
-using System;
-
 namespace ScottPlot.DataSources;
 
 public class SignalXYSourceDoubleArray : ISignalXYSource, IDataSource, IGetNearest

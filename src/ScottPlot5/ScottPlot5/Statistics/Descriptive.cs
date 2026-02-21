@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace ScottPlot.Statistics;
 
 public static class Descriptive

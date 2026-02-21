@@ -5,7 +5,6 @@
  */
 
 using ScottPlot.Palettes;
-using System.Collections.Generic;
 
 namespace ScottPlot;
 

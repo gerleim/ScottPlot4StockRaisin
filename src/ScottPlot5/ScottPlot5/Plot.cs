@@ -206,8 +206,10 @@ public class Plot : IDisposable
 
         foreach (IPanel panel in panels)
         {
-            float axisPanelSize = RenderManager.LastRender.Layout.PanelSizes[panel];
-            float axisPanelOffset = RenderManager.LastRender.Layout.PanelOffsets[panel];
+            if (!RenderManager.LastRender.Layout.PanelSizes.TryGetValue(panel, out float axisPanelSize))
+                continue;
+            if (!RenderManager.LastRender.Layout.PanelOffsets.TryGetValue(panel, out float axisPanelOffset))
+                continue;
             PixelRect axisRect = panel.GetPanelRect(dataRect, axisPanelSize, axisPanelOffset, paint);
             if (axisRect.Contains(pixel))
             {

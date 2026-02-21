@@ -1,5 +1,3 @@
-using System.Security.Cryptography.X509Certificates;
-
 namespace ScottPlot.AxisRules;
 
 public class SnapToTicksX(IXAxis xAxis) : IAxisRule
