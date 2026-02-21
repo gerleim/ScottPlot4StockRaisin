@@ -100,8 +100,15 @@ public class BarPlot : IPlottable, IHasLegendText, IRenderLast
 
     public virtual void Render(RenderPack rp)
     {
+        double visibleLeft = Axes.GetCoordinateX(rp.DataRect.Left);
+        double visibleRight = Axes.GetCoordinateX(rp.DataRect.Right);
+
         foreach (Bar bar in Bars)
         {
+            double halfSize = bar.Size / 2;
+            if (bar.Position + halfSize < visibleLeft || bar.Position - halfSize > visibleRight)
+                continue;
+
             bar.RenderBody(rp, Axes);
             if (!bar.LabelOnTop)
             {
@@ -113,13 +120,20 @@ public class BarPlot : IPlottable, IHasLegendText, IRenderLast
 
     public virtual void RenderLast(RenderPack rp)
     {
+        double visibleLeft = Axes.GetCoordinateX(rp.DataRect.Left);
+        double visibleRight = Axes.GetCoordinateX(rp.DataRect.Right);
+
         foreach (Bar bar in Bars)
         {
-            if (bar.LabelOnTop)
-            {
-                ValueLabelStyle.Text = bar.Label;
-                bar.RenderText(rp, Axes, ValueLabelStyle);
-            }
+            if (!bar.LabelOnTop)
+                continue;
+
+            double halfSize = bar.Size / 2;
+            if (bar.Position + halfSize < visibleLeft || bar.Position - halfSize > visibleRight)
+                continue;
+
+            ValueLabelStyle.Text = bar.Label;
+            bar.RenderText(rp, Axes, ValueLabelStyle);
         }
     }
 }

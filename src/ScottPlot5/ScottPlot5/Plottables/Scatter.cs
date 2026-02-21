@@ -126,11 +126,37 @@ public class Scatter(IScatterSource data) : IPlottable, IHasLine, IHasMarker, IH
     {
         var coordinates = Data.GetScatterPoints();
 
-        Pixel[] markerPixels = new Pixel[coordinates.Count];
-        for (int i = 0; i < coordinates.Count; i++)
+        if (coordinates.Count == 0)
+            return;
+
+        // Determine visible X range and cull to only visible points (+ 1 margin on each side for line continuity)
+        double visibleXMin = (Axes.GetCoordinateX(rp.DataRect.Left) - OffsetX) / ScaleX;
+        double visibleXMax = (Axes.GetCoordinateX(rp.DataRect.Right) - OffsetX) / ScaleX;
+
+        int startIdx = 0;
+        int endIdx = coordinates.Count - 1;
+
+        // Binary search for sorted data (common case: sequential indices for indicators)
+        if (coordinates.Count > 100 && _dataSource?.IsSorted() == true)
         {
-            double x = coordinates[i].X * ScaleX + OffsetX;
-            double y = coordinates[i].Y * ScaleY + OffsetY;
+            startIdx = BinarySearchLower(coordinates, visibleXMin);
+            endIdx = BinarySearchUpper(coordinates, visibleXMax);
+
+            // Include 1 extra point on each side for line continuity
+            startIdx = Math.Max(0, startIdx - 1);
+            endIdx = Math.Min(coordinates.Count - 1, endIdx + 1);
+        }
+
+        int visibleCount = endIdx - startIdx + 1;
+        if (visibleCount <= 0)
+            return;
+
+        Pixel[] markerPixels = new Pixel[visibleCount];
+        for (int i = 0; i < visibleCount; i++)
+        {
+            int srcIdx = startIdx + i;
+            double x = coordinates[srcIdx].X * ScaleX + OffsetX;
+            double y = coordinates[srcIdx].Y * ScaleY + OffsetY;
             markerPixels[i] = Axes.GetPixel(new(x, y));
         }
 
@@ -203,6 +229,36 @@ public class Scatter(IScatterSource data) : IPlottable, IHasLine, IHasMarker, IH
 
         Drawing.DrawLines(rp.Canvas, rp.Paint, path, LineStyle);
         Drawing.DrawMarkers(rp.Canvas, rp.Paint, markerPixels, MarkerStyle);
+    }
+
+    /// <summary>
+    /// Binary search for the first index where X >= target.
+    /// </summary>
+    private static int BinarySearchLower(IReadOnlyList<Coordinates> coords, double target)
+    {
+        int lo = 0, hi = coords.Count;
+        while (lo < hi)
+        {
+            int mid = lo + (hi - lo) / 2;
+            if (coords[mid].X < target) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+
+    /// <summary>
+    /// Binary search for the last index where X <= target.
+    /// </summary>
+    private static int BinarySearchUpper(IReadOnlyList<Coordinates> coords, double target)
+    {
+        int lo = 0, hi = coords.Count;
+        while (lo < hi)
+        {
+            int mid = lo + (hi - lo) / 2;
+            if (coords[mid].X <= target) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo - 1;
     }
 
     /// <summary>
