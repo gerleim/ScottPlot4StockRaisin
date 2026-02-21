@@ -12,6 +12,7 @@ public class WpfPlotMenu : IPlotMenu
 {
     public string DefaultSaveImageFilename { get; set; } = "Plot.png";
     public List<ContextMenuItem> ContextMenuItems { get; set; } = new();
+    public ContextMenuStyle Style { get; set; } = new();
     readonly WpfPlotBase ThisControl;
 
     public WpfPlotMenu(WpfPlotBase control)
@@ -58,6 +59,44 @@ public class WpfPlotMenu : IPlotMenu
     public ContextMenu GetContextMenu(Plot plot)
     {
         ContextMenu menu = new();
+        if (Style.MenuPadding.HasValue)
+        {
+            var padding = Style.MenuPadding.Value;
+            menu.Opened += (s, e) =>
+            {
+                if (s is ContextMenu cm)
+                    cm.Padding = padding;
+            };
+        }
+
+        // Build a compact MenuItem style that replaces the default bulky template
+        var itemStyle = new System.Windows.Style(typeof(MenuItem));
+        itemStyle.Setters.Add(new Setter(MenuItem.MinHeightProperty, 0d));
+        itemStyle.Setters.Add(new Setter(MenuItem.MinWidthProperty, 0d));
+        if (Style.ItemFontSize.HasValue)
+            itemStyle.Setters.Add(new Setter(MenuItem.FontSizeProperty, Style.ItemFontSize.Value));
+        if (Style.ItemPadding.HasValue)
+            itemStyle.Setters.Add(new Setter(MenuItem.PaddingProperty, Style.ItemPadding.Value));
+
+        var borderFactory = new FrameworkElementFactory(typeof(System.Windows.Controls.Border), "Bd");
+        borderFactory.SetValue(System.Windows.Controls.Border.BackgroundProperty, System.Windows.Media.Brushes.Transparent);
+        borderFactory.SetBinding(System.Windows.Controls.Border.PaddingProperty,
+            new System.Windows.Data.Binding("Padding") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+        var contentFactory = new FrameworkElementFactory(typeof(ContentPresenter));
+        contentFactory.SetValue(ContentPresenter.ContentSourceProperty, "Header");
+        contentFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, System.Windows.VerticalAlignment.Center);
+        borderFactory.AppendChild(contentFactory);
+
+        var itemTemplate = new ControlTemplate(typeof(MenuItem));
+        itemTemplate.VisualTree = borderFactory;
+
+        var highlightTrigger = new Trigger { Property = MenuItem.IsHighlightedProperty, Value = true };
+        highlightTrigger.Setters.Add(new Setter(System.Windows.Controls.Border.BackgroundProperty, SystemColors.HighlightBrush, "Bd"));
+        highlightTrigger.Setters.Add(new Setter(MenuItem.ForegroundProperty, SystemColors.HighlightTextBrush));
+        itemTemplate.Triggers.Add(highlightTrigger);
+
+        itemStyle.Setters.Add(new Setter(MenuItem.TemplateProperty, itemTemplate));
+        menu.Resources[typeof(MenuItem)] = itemStyle;
 
         foreach (ContextMenuItem curr in ContextMenuItems)
         {
