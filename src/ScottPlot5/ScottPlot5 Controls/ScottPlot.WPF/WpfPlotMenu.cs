@@ -65,7 +65,13 @@ public class WpfPlotMenu : IPlotMenu
             menu.Opened += (s, e) =>
             {
                 if (s is ContextMenu cm)
+                {
                     cm.Padding = padding;
+                    // TemplateBinding is one-time, so also find the ItemsPresenter directly
+                    var presenter = FindChild<ItemsPresenter>(cm);
+                    if (presenter != null)
+                        presenter.Margin = padding;
+                }
             };
         }
 
@@ -214,5 +220,20 @@ public class WpfPlotMenu : IPlotMenu
     public void AddSeparator()
     {
         ContextMenuItems.Add(new ContextMenuItem() { IsSeparator = true });
+    }
+
+    private static T? FindChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        int count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is T match)
+                return match;
+            var result = FindChild<T>(child);
+            if (result != null)
+                return result;
+        }
+        return null;
     }
 }
