@@ -59,21 +59,29 @@ public class WpfPlotMenu : IPlotMenu
     public ContextMenu GetContextMenu(Plot plot)
     {
         ContextMenu menu = new();
-        if (Style.MenuPadding.HasValue)
-        {
-            var padding = Style.MenuPadding.Value;
-            menu.Opened += (s, e) =>
-            {
-                if (s is ContextMenu cm)
-                {
-                    cm.Padding = padding;
-                    // TemplateBinding is one-time, so also find the ItemsPresenter directly
-                    var presenter = FindChild<ItemsPresenter>(cm);
-                    if (presenter != null)
-                        presenter.Margin = padding;
-                }
-            };
-        }
+
+        // Override the ContextMenu ControlTemplate to eliminate the default top/bottom
+        // gap. The Aero2 theme template uses ItemsPresenter Margin="{TemplateBinding Padding}"
+        // which is a one-time binding — impossible to override after template application.
+        var menuBorderFactory = new FrameworkElementFactory(typeof(Border), "ContextMenuBorder");
+        menuBorderFactory.SetBinding(Border.BackgroundProperty,
+            new System.Windows.Data.Binding("Background") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+        menuBorderFactory.SetBinding(Border.BorderBrushProperty,
+            new System.Windows.Data.Binding("BorderBrush") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+        menuBorderFactory.SetBinding(Border.BorderThicknessProperty,
+            new System.Windows.Data.Binding("BorderThickness") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+        menuBorderFactory.SetValue(Border.PaddingProperty, Style.MenuPadding ?? new Thickness(0));
+
+        var presenterFactory = new FrameworkElementFactory(typeof(ItemsPresenter));
+        presenterFactory.SetValue(ItemsPresenter.MarginProperty, new Thickness(0));
+        presenterFactory.SetValue(System.Windows.Input.KeyboardNavigation.DirectionalNavigationProperty,
+            System.Windows.Input.KeyboardNavigationMode.Cycle);
+        presenterFactory.SetValue(UIElement.SnapsToDevicePixelsProperty, true);
+
+        menuBorderFactory.AppendChild(presenterFactory);
+        var menuTemplate = new ControlTemplate(typeof(ContextMenu));
+        menuTemplate.VisualTree = menuBorderFactory;
+        menu.Template = menuTemplate;
 
         // Build a compact MenuItem style that replaces the default bulky template
         var itemStyle = new System.Windows.Style(typeof(MenuItem));
@@ -220,20 +228,5 @@ public class WpfPlotMenu : IPlotMenu
     public void AddSeparator()
     {
         ContextMenuItems.Add(new ContextMenuItem() { IsSeparator = true });
-    }
-
-    private static T? FindChild<T>(DependencyObject parent) where T : DependencyObject
-    {
-        int count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
-        for (int i = 0; i < count; i++)
-        {
-            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
-            if (child is T match)
-                return match;
-            var result = FindChild<T>(child);
-            if (result != null)
-                return result;
-        }
-        return null;
     }
 }
