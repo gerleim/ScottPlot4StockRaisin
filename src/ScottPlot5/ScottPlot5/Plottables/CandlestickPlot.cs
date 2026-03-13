@@ -106,7 +106,18 @@ public class CandlestickPlot(IOHLCSource data) : IPlottable
     public virtual void Render(RenderPack rp)
     {
         var ohlcs = Data.GetOHLCs();
-        for (int i = 0; i < ohlcs.Count; i++)
+
+        int startIdx = 0;
+        int endIdx = ohlcs.Count - 1;
+        if (Sequential)
+        {
+            double visLeft = Axes.GetCoordinateX(rp.DataRect.Left);
+            double visRight = Axes.GetCoordinateX(rp.DataRect.Right);
+            startIdx = Math.Max(0, (int)Math.Floor(visLeft) - 1);
+            endIdx = Math.Min(ohlcs.Count - 1, (int)Math.Ceiling(visRight) + 1);
+        }
+
+        for (int i = startIdx; i <= endIdx; i++)
         {
             OHLC ohlc = ohlcs[i];
             bool isRising = ohlc.Close >= ohlc.Open;

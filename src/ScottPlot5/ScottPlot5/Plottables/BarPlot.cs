@@ -12,6 +12,11 @@ public class BarPlot : IPlottable, IHasLegendText, IRenderLast
     public bool IsVisible { get; set; } = true;
     public IAxes Axes { get; set; } = new Axes();
 
+    /// <summary>
+    /// When true, bar positions are sequential integers (0..n) and visible-range culling uses index math instead of iterating all bars.
+    /// </summary>
+    public bool Sequential { get; set; }
+
     public List<Bar> Bars { get; } // TODO: bar plot data source?
 
     public bool LabelsOnTop { set => Bars.ForEach(x => x.LabelOnTop = value); }
@@ -103,11 +108,23 @@ public class BarPlot : IPlottable, IHasLegendText, IRenderLast
         double visibleLeft = Axes.GetCoordinateX(rp.DataRect.Left);
         double visibleRight = Axes.GetCoordinateX(rp.DataRect.Right);
 
-        foreach (Bar bar in Bars)
+        int startIdx = 0;
+        int endIdx = Bars.Count - 1;
+        if (Sequential)
         {
-            double halfSize = bar.Size / 2;
-            if (bar.Position + halfSize < visibleLeft || bar.Position - halfSize > visibleRight)
-                continue;
+            startIdx = Math.Max(0, (int)Math.Floor(visibleLeft) - 1);
+            endIdx = Math.Min(Bars.Count - 1, (int)Math.Ceiling(visibleRight) + 1);
+        }
+
+        for (int i = startIdx; i <= endIdx; i++)
+        {
+            Bar bar = Bars[i];
+            if (!Sequential)
+            {
+                double halfSize = bar.Size / 2;
+                if (bar.Position + halfSize < visibleLeft || bar.Position - halfSize > visibleRight)
+                    continue;
+            }
 
             bar.RenderBody(rp, Axes);
             if (!bar.LabelOnTop)
@@ -123,14 +140,26 @@ public class BarPlot : IPlottable, IHasLegendText, IRenderLast
         double visibleLeft = Axes.GetCoordinateX(rp.DataRect.Left);
         double visibleRight = Axes.GetCoordinateX(rp.DataRect.Right);
 
-        foreach (Bar bar in Bars)
+        int startIdx = 0;
+        int endIdx = Bars.Count - 1;
+        if (Sequential)
         {
+            startIdx = Math.Max(0, (int)Math.Floor(visibleLeft) - 1);
+            endIdx = Math.Min(Bars.Count - 1, (int)Math.Ceiling(visibleRight) + 1);
+        }
+
+        for (int i = startIdx; i <= endIdx; i++)
+        {
+            Bar bar = Bars[i];
             if (!bar.LabelOnTop)
                 continue;
 
-            double halfSize = bar.Size / 2;
-            if (bar.Position + halfSize < visibleLeft || bar.Position - halfSize > visibleRight)
-                continue;
+            if (!Sequential)
+            {
+                double halfSize = bar.Size / 2;
+                if (bar.Position + halfSize < visibleLeft || bar.Position - halfSize > visibleRight)
+                    continue;
+            }
 
             ValueLabelStyle.Text = bar.Label;
             bar.RenderText(rp, Axes, ValueLabelStyle);
