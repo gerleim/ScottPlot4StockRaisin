@@ -16,12 +16,6 @@ This project retains only candlestick, line, and bar chart capabilities from the
 - Windows Forms
 - WPF
 
-## Build
-
-```
-dotnet build src/ScottPlot5/ScottPlot5.sln
-```
-
 ## License
 
 Based on [ScottPlot](https://github.com/ScottPlot/ScottPlot) by [Scott W Harden](https://swharden.com/about/), provided under the [MIT license](LICENSE).
