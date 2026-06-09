@@ -92,22 +92,67 @@ public class WpfPlotMenu : IPlotMenu
         if (Style.ItemPadding.HasValue)
             itemStyle.Setters.Add(new Setter(MenuItem.PaddingProperty, Style.ItemPadding.Value));
 
+        var gridFactory = new FrameworkElementFactory(typeof(System.Windows.Controls.Grid));
+
         var borderFactory = new FrameworkElementFactory(typeof(System.Windows.Controls.Border), "Bd");
         borderFactory.SetValue(System.Windows.Controls.Border.BackgroundProperty, System.Windows.Media.Brushes.Transparent);
         borderFactory.SetBinding(System.Windows.Controls.Border.PaddingProperty,
             new System.Windows.Data.Binding("Padding") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+
+        var dockFactory = new FrameworkElementFactory(typeof(DockPanel));
+
+        var arrowFactory = new FrameworkElementFactory(typeof(System.Windows.Controls.TextBlock), "Arrow");
+        arrowFactory.SetValue(System.Windows.Controls.TextBlock.TextProperty, "▸");
+        arrowFactory.SetValue(DockPanel.DockProperty, Dock.Right);
+        arrowFactory.SetValue(System.Windows.Controls.TextBlock.FontSizeProperty, 10d);
+        arrowFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, System.Windows.VerticalAlignment.Center);
+        arrowFactory.SetValue(FrameworkElement.MarginProperty, new Thickness(8, 0, 0, 0));
+        arrowFactory.SetValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+
         var contentFactory = new FrameworkElementFactory(typeof(ContentPresenter));
         contentFactory.SetValue(ContentPresenter.ContentSourceProperty, "Header");
         contentFactory.SetValue(FrameworkElement.VerticalAlignmentProperty, System.Windows.VerticalAlignment.Center);
-        borderFactory.AppendChild(contentFactory);
+
+        dockFactory.AppendChild(arrowFactory);
+        dockFactory.AppendChild(contentFactory);
+        borderFactory.AppendChild(dockFactory);
+        gridFactory.AppendChild(borderFactory);
+
+        var popupFactory = new FrameworkElementFactory(typeof(System.Windows.Controls.Primitives.Popup), "PART_Popup");
+        popupFactory.SetValue(System.Windows.Controls.Primitives.Popup.AllowsTransparencyProperty, true);
+        popupFactory.SetValue(System.Windows.Controls.Primitives.Popup.PlacementProperty,
+            System.Windows.Controls.Primitives.PlacementMode.Right);
+        popupFactory.SetBinding(System.Windows.Controls.Primitives.Popup.IsOpenProperty,
+            new System.Windows.Data.Binding("IsSubmenuOpen") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
+
+        var popupBorderFactory = new FrameworkElementFactory(typeof(System.Windows.Controls.Border), "SubMenuBorder");
+        popupBorderFactory.SetBinding(System.Windows.Controls.Border.BackgroundProperty,
+            new System.Windows.Data.Binding("Background") { Source = menu });
+        popupBorderFactory.SetBinding(System.Windows.Controls.Border.BorderBrushProperty,
+            new System.Windows.Data.Binding("BorderBrush") { Source = menu });
+        popupBorderFactory.SetValue(System.Windows.Controls.Border.BorderThicknessProperty, new Thickness(1));
+        popupBorderFactory.SetValue(System.Windows.Controls.Border.PaddingProperty, Style.MenuPadding ?? new Thickness(0));
+        popupBorderFactory.SetBinding(System.Windows.Documents.TextElement.ForegroundProperty,
+            new System.Windows.Data.Binding("Foreground") { Source = menu });
+
+        var itemsPanelFactory = new FrameworkElementFactory(typeof(StackPanel));
+        itemsPanelFactory.SetValue(StackPanel.IsItemsHostProperty, true);
+
+        popupBorderFactory.AppendChild(itemsPanelFactory);
+        popupFactory.AppendChild(popupBorderFactory);
+        gridFactory.AppendChild(popupFactory);
 
         var itemTemplate = new ControlTemplate(typeof(MenuItem));
-        itemTemplate.VisualTree = borderFactory;
+        itemTemplate.VisualTree = gridFactory;
 
         var highlightTrigger = new Trigger { Property = MenuItem.IsHighlightedProperty, Value = true };
         highlightTrigger.Setters.Add(new Setter(System.Windows.Controls.Border.BackgroundProperty, SystemColors.HighlightBrush, "Bd"));
         highlightTrigger.Setters.Add(new Setter(MenuItem.ForegroundProperty, SystemColors.HighlightTextBrush));
         itemTemplate.Triggers.Add(highlightTrigger);
+
+        var hasItemsTrigger = new Trigger { Property = MenuItem.HasItemsProperty, Value = true };
+        hasItemsTrigger.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Visible, "Arrow"));
+        itemTemplate.Triggers.Add(hasItemsTrigger);
 
         itemStyle.Setters.Add(new Setter(MenuItem.TemplateProperty, itemTemplate));
         menu.Resources[typeof(MenuItem)] = itemStyle;
@@ -118,9 +163,31 @@ public class WpfPlotMenu : IPlotMenu
             {
                 menu.Items.Add(new Separator());
             }
+            else if (curr.Children is { Count: > 0 } children)
+            {
+                MenuItem parentItem = new() { Header = curr.Label };
+                foreach (var child in children)
+                {
+                    if (child.IsSeparator)
+                    {
+                        parentItem.Items.Add(new Separator());
+                    }
+                    else
+                    {
+                        MenuItem childItem = new() { Header = child.Label };
+                        if (!string.IsNullOrEmpty(child.Tooltip))
+                            childItem.ToolTip = child.Tooltip;
+                        childItem.Click += (s, e) => child.OnInvoke(plot);
+                        parentItem.Items.Add(childItem);
+                    }
+                }
+                menu.Items.Add(parentItem);
+            }
             else
             {
                 MenuItem menuItem = new() { Header = curr.Label };
+                if (!string.IsNullOrEmpty(curr.Tooltip))
+                    menuItem.ToolTip = curr.Tooltip;
                 menuItem.Click += (s, e) => curr.OnInvoke(plot);
                 menu.Items.Add(menuItem);
             }
@@ -223,6 +290,16 @@ public class WpfPlotMenu : IPlotMenu
     public void Add(string Label, Action<Plot> action)
     {
         ContextMenuItems.Add(new ContextMenuItem() { Label = Label, OnInvoke = action });
+    }
+
+    public void Add(string Label, Action<Plot> action, string? tooltip)
+    {
+        ContextMenuItems.Add(new ContextMenuItem() { Label = Label, OnInvoke = action, Tooltip = tooltip });
+    }
+
+    public void AddSubmenu(string label, List<ContextMenuItem> children)
+    {
+        ContextMenuItems.Add(new ContextMenuItem { Label = label, Children = children });
     }
 
     public void AddSeparator()
